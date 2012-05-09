@@ -43,65 +43,39 @@ import java.security.NoSuchAlgorithmException;
 
 public class SHA1 {
 	public static void main(String[] args) throws NoSuchAlgorithmException {
-		// Values from the hacking page
-		String secretKey = "this is the secret";
-		String originalPrefix = "aaaa";
-		String originalSuffix = "|1";
-		String desiredSuffix = "|0";
+		int secretKeyLength = Integer.parseInt(args[0]);
+		String originalMessage = args[1];
+		String originalHash = args[2];
+		String hackedSuffix = args[3];
+		byte[] hackedSuffixBytes = hackedSuffix.getBytes();
 
-		// This is the full message including the secret key
-		String fullMessage = secretKey + originalPrefix + originalSuffix;
-		byte[] fullMessageBytes = fullMessage.getBytes();
+		// The length of the message with the secret key
+		int originalMessageLengthWithKey = secretKeyLength
+				+ originalMessage.length();
 
-		// This is the full message including the secret key and padding
-		byte[] fullMessagePaddedBytes = SHA1.concat(fullMessageBytes,
-				generatePadding(fullMessageBytes));
+		// The length of the padding on the original message
+		int originalMessagePaddingLength = generatePadding(originalMessageLengthWithKey).length;
 
-		// These are the bytes that we want to hack onto our message
-		byte[] hackedBytes = desiredSuffix.getBytes();
+		// The length of the message with the secret key and padding
+		int totalOriginalMessageLength = originalMessageLengthWithKey
+				+ originalMessagePaddingLength;
 
-		/**
-		 * This is the full message including the secret key and padding, with
-		 * the hacked bytes added onto it
-		 */
-		byte[] fullMessageHackedBytes = SHA1.concat(fullMessagePaddedBytes,
-				hackedBytes);
+		// The length of the hacked message
+		int hackedMessageLength = totalOriginalMessageLength
+				+ hackedSuffix.length();
 
-		int fullMessageLength = secretKey.length() + originalPrefix.length()
-				+ originalSuffix.length();
-		int paddedMessageLength = fullMessageLength
-				+ generatePadding(fullMessageLength).length;
+		// The padding for the hacked message
+		byte[] hackedMessagePadding = generatePadding(hackedSuffixBytes.length,
+				hackedMessageLength);
 
-		/**
-		 * This is the partial message that we use for the padding attack. We
-		 * need to generate the padding here since the bit count is going to be
-		 * different than what the SHA1 code calculates.
-		 */
-		byte[] partialMessageHackedBytes = SHA1.concat(hackedBytes,
-				generatePadding(paddedMessageLength + hackedBytes.length));
+		// The hacked message with the hacked padding
+		byte[] hackedMessageBytes = SHA1.concat(hackedSuffix.getBytes(),
+				hackedMessagePadding);
 
-		// Get the original hash
-		String originalHash = encode(fullMessageBytes, true);
-
-		// Print out the hashes
-		System.out.println("Full message with automatic padding: "
-				+ encode(fullMessageBytes, true));
-		System.out.println("Full message with manual padding: "
-				+ encode(fullMessagePaddedBytes, false));
-
-		// Print out the expected hash from the hacked message
-		System.out.println("Full message hacked: "
-				+ encode(fullMessageHackedBytes, true));
-
-		// Print out the exploited hash from the hacked message
-		System.out.println("Full message exploited: "
-				+ encode(toShorts(partialMessageHackedBytes),
+		// Print out the new hash from the hacked message
+		System.out.println("New hash: "
+				+ encode(toShorts(hackedMessageBytes),
 						extractState(originalHash), false));
-
-		// System.out.println(hackSha("secretkey".length(),
-		// "admin=1".getBytes(),
-		// "admin=0".getBytes(),
-		// extractState("4b6ec3dcfe2328673ff3bc90cf401748ac4d0610")));
 	}
 
 	/**
